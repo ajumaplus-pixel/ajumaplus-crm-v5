@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables (keep .env.production as templates)
+.env
+.env.local
+backend/.env
+backend/.env.local
+frontend/.env.local
+
+# Build outputs
+build/
+dist/
+frontend/build/
+backend/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.sqlite
+*.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Google Apps Scripts (keep these in version control)
+# GOOGLE_APPS_SCRIPT_*.js
+# UNIFIED_GOOGLE_APPS_SCRIPT.js
