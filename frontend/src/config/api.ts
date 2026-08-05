@@ -1,8 +1,8 @@
 // API Configuration for different environments
 const getApiBaseUrl = () => {
   // Check for environment variable first (for production)
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
   
   // Development fallback
