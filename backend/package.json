@@ -8,7 +8,8 @@
     "dev": "nodemon src/app.js",
     "build": "echo 'No build step required for Node.js backend'",
     "test": "jest",
-    "migrate": "node src/utils/migrate.js"
+    "migrate": "node src/utils/migrate.js",
+    "init-db": "node scripts/init-db.js"
   },
   "keywords": [
     "crm",
