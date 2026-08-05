@@ -8,8 +8,8 @@ class User {
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = uuidv4();
     
-    // Auto-activate accounts in development mode
-    const status = process.env.NODE_ENV === 'development' ? 'active' : 'pending_verification';
+    // Auto-activate accounts for initial deployment
+    const status = 'active';
     
     const query = `
       INSERT INTO users (id, username, email, password_hash, role, status, created_at, updated_at)
