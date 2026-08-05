@@ -1,4 +1,5 @@
-const db = require('../config/database');
+const pool = require('../config/database');
+const { v4: uuidv4 } = require('uuid');
 
 class FormSubmission {
   static async create(submissionData) {
@@ -12,12 +13,14 @@ class FormSubmission {
       status
     } = submissionData;
 
+    const id = uuidv4();
     const query = `
-      INSERT INTO form_submissions (form_type, email, form_data, webhook_received, account_created, email_sent, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO form_submissions (id, form_type, email, form_data, webhook_received, account_created, email_sent, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `;
 
     const values = [
+      id,
       form_type,
       email,
       JSON.stringify(form_data),
@@ -28,23 +31,31 @@ class FormSubmission {
     ];
 
     try {
-      const [result] = await db.execute(query, values);
-      return {
-        id: result.insertId,
-        ...submissionData
-      };
+      await pool.query(query, values);
+      return await this.findById(id);
     } catch (error) {
       console.error('Error creating form submission:', error);
       throw error;
     }
   }
 
-  static async findByEmail(email) {
-    const query = 'SELECT * FROM form_submissions WHERE email = ? ORDER BY webhook_received DESC';
-    
+  static async findById(id) {
+    const query = 'SELECT * FROM form_submissions WHERE id = $1';
     try {
-      const [rows] = await db.execute(query, [email]);
-      return rows;
+      const result = await pool.query(query, [id]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error finding form submission by id:', error);
+      throw error;
+    }
+  }
+
+  static async findByEmail(email) {
+    const query = 'SELECT * FROM form_submissions WHERE email = $1 ORDER BY webhook_received DESC';
+
+    try {
+      const result = await pool.query(query, [email]);
+      return result.rows;
     } catch (error) {
       console.error('Error finding form submissions by email:', error);
       throw error;
@@ -52,11 +63,11 @@ class FormSubmission {
   }
 
   static async findByFormType(formType, limit = 50) {
-    const query = 'SELECT * FROM form_submissions WHERE form_type = ? ORDER BY webhook_received DESC LIMIT ?';
-    
+    const query = 'SELECT * FROM form_submissions WHERE form_type = $1 ORDER BY webhook_received DESC LIMIT $2';
+
     try {
-      const [rows] = await db.execute(query, [formType, limit]);
-      return rows;
+      const result = await pool.query(query, [formType, limit]);
+      return result.rows;
     } catch (error) {
       console.error('Error finding form submissions by type:', error);
       throw error;
@@ -64,11 +75,11 @@ class FormSubmission {
   }
 
   static async getAll(limit = 100) {
-    const query = 'SELECT * FROM form_submissions ORDER BY webhook_received DESC LIMIT ?';
-    
+    const query = 'SELECT * FROM form_submissions ORDER BY webhook_received DESC LIMIT $1';
+
     try {
-      const [rows] = await db.execute(query, [limit]);
-      return rows;
+      const result = await pool.query(query, [limit]);
+      return result.rows;
     } catch (error) {
       console.error('Error getting all form submissions:', error);
       throw error;
@@ -76,11 +87,11 @@ class FormSubmission {
   }
 
   static async updateStatus(id, status) {
-    const query = 'UPDATE form_submissions SET status = ? WHERE id = ?';
-    
+    const query = 'UPDATE form_submissions SET status = $1 WHERE id = $2';
+
     try {
-      const [result] = await db.execute(query, [status, id]);
-      return result.affectedRows > 0;
+      const result = await pool.query(query, [status, id]);
+      return result.rowCount > 0;
     } catch (error) {
       console.error('Error updating form submission status:', error);
       throw error;
@@ -88,11 +99,11 @@ class FormSubmission {
   }
 
   static async recordEmailSent(id) {
-    const query = 'UPDATE form_submissions SET email_sent = ? WHERE id = ?';
-    
+    const query = 'UPDATE form_submissions SET email_sent = $1 WHERE id = $2';
+
     try {
-      const [result] = await db.execute(query, [new Date(), id]);
-      return result.affectedRows > 0;
+      const result = await pool.query(query, [new Date(), id]);
+      return result.rowCount > 0;
     } catch (error) {
       console.error('Error recording email sent:', error);
       throw error;
@@ -100,11 +111,11 @@ class FormSubmission {
   }
 
   static async recordAccountCreated(id, userId) {
-    const query = 'UPDATE form_submissions SET account_created = ?, user_id = ? WHERE id = ?';
-    
+    const query = 'UPDATE form_submissions SET account_created = $1, user_id = $2 WHERE id = $3';
+
     try {
-      const [result] = await db.execute(query, [new Date(), userId, id]);
-      return result.affectedRows > 0;
+      const result = await pool.query(query, [new Date(), userId, id]);
+      return result.rowCount > 0;
     } catch (error) {
       console.error('Error recording account created:', error);
       throw error;
