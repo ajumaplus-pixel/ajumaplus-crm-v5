@@ -2,10 +2,12 @@
 const getApiBaseUrl = () => {
   // Check for environment variable first (for production)
   if (import.meta.env.VITE_API_URL) {
+    console.log('Using production API URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
-  
+
   // Development fallback
+  console.log('Using development API URL: http://localhost:3001');
   return 'http://localhost:3001';
 };
 
