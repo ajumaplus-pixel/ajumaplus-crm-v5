@@ -94,7 +94,16 @@ const CustomerLogin: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 2, mb: 3, py: 1.5, fontSize: '1rem', fontWeight: 600 }}
+              sx={{ 
+                mt: 2, 
+                mb: 3, 
+                py: 1.5, 
+                fontSize: '1rem', 
+                fontWeight: 600,
+                bgcolor: '#FFD400',
+                color: '#000',
+                '&:hover': { bgcolor: '#E6BE00' }
+              }}
               disabled={isLoading}
             >
               {isLoading ? <CircularProgress size={24} /> : 'Sign In'}

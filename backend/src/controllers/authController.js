@@ -51,18 +51,24 @@ class AuthController {
     try {
       const { email, password } = req.body;
       
+      console.log('Login attempt for email:', email);
+      
       // Find user by email
       const user = await User.findByEmail(email);
       if (!user) {
+        console.log('User not found for email:', email);
         return res.status(401).json({ 
           success: false, 
           message: 'Invalid credentials' 
         });
       }
 
+      console.log('User found:', user.id, user.email, user.role, user.status);
+
       // Check password
       const isPasswordValid = await User.comparePassword(password, user.password_hash);
       if (!isPasswordValid) {
+        console.log('Invalid password for user:', email);
         return res.status(401).json({ 
           success: false, 
           message: 'Invalid credentials' 
@@ -71,11 +77,14 @@ class AuthController {
 
       // Check account status
       if (user.status !== 'active') {
+        console.log('Account not active for user:', email, 'status:', user.status);
         return res.status(403).json({ 
           success: false, 
           message: 'Account is not active' 
         });
       }
+
+      console.log('Login successful for user:', email);
 
       // Update last login
       await User.updateLastLogin(user.id);

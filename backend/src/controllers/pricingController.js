@@ -139,6 +139,28 @@ class PricingController {
         });
       }
 
+      // Get the job to check if the user is the customer
+      const job = await Job.findById(quotation.job_id);
+      if (!job) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Associated job not found' 
+        });
+      }
+
+      // If user is not staff, check if they are the customer
+      if (req.user.role !== 'staff' && req.user.role !== 'admin') {
+        const Customer = require('../models/Customer');
+        const customer = await Customer.findByUserId(req.user.id);
+        
+        if (!customer || customer.id !== job.customer_id) {
+          return res.status(403).json({ 
+            success: false, 
+            message: 'You can only approve quotations for your own jobs' 
+          });
+        }
+      }
+
       const updatedQuotation = await Quotation.approve(id);
       
       res.status(200).json({
@@ -159,6 +181,7 @@ class PricingController {
   async rejectQuotation(req, res) {
     try {
       const { id } = req.params;
+      const { reason } = req.body;
       
       const quotation = await Quotation.findById(id);
       if (!quotation) {
@@ -168,7 +191,29 @@ class PricingController {
         });
       }
 
-      const updatedQuotation = await Quotation.reject(id);
+      // Get the job to check if the user is the customer
+      const job = await Job.findById(quotation.job_id);
+      if (!job) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Associated job not found' 
+        });
+      }
+
+      // If user is not staff, check if they are the customer
+      if (req.user.role !== 'staff' && req.user.role !== 'admin') {
+        const Customer = require('../models/Customer');
+        const customer = await Customer.findByUserId(req.user.id);
+        
+        if (!customer || customer.id !== job.customer_id) {
+          return res.status(403).json({ 
+            success: false, 
+            message: 'You can only reject quotations for your own jobs' 
+          });
+        }
+      }
+
+      const updatedQuotation = await Quotation.reject(id, reason);
       
       res.status(200).json({
         success: true,

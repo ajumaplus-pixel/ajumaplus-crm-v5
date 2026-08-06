@@ -1,100 +1,111 @@
-const matchingService = require('../services/matchingService');
-const { logger } = require('../utils/logger');
+const MatchingService = require('../services/matchingService');
+const Job = require('../models/Job');
+const ISP = require('../models/ISP');
+const NotificationService = require('../services/notificationService');
 
 class MatchingController {
-  async matchISPForJob(req, res) {
+  async getSuggestedAssignments(req, res) {
     try {
-      const { job_id } = req.params;
-      
-      const matchResult = await matchingService.getRecommendedISPs(job_id);
-      
-      res.status(200).json({
-        success: true,
-        message: 'ISP matching completed successfully',
-        data: matchResult
-      });
+      const suggestions = await MatchingService.suggestAssignments();
+      res.json({ success: true, data: suggestions });
     } catch (error) {
-      logger.error('Match ISP for job error:', error);
+      console.error('Get suggested assignments error:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Failed to match ISP for job', 
+        message: 'Failed to get suggested assignments', 
         error: error.message 
       });
     }
   }
 
-  async assignBestISP(req, res) {
+  async approveAssignment(req, res) {
     try {
-      const { job_id } = req.params;
+      const { job_id, isp_id } = req.body;
       
-      const assignmentResult = await matchingService.assignBestISP(job_id);
+      // Validate job exists
+      const job = await Job.findById(job_id);
+      if (!job) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Job not found' 
+        });
+      }
+
+      // Validate ISP exists
+      const isp = await ISP.findById(isp_id);
+      if (!isp) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'ISP not found' 
+        });
+      }
+
+      // Assign ISP to job
+      const updatedJob = await Job.assignISP(job_id, isp_id);
       
-      res.status(200).json({
-        success: true,
+      // Create notification for ISP
+      try {
+        await NotificationService.create({
+          user_id: isp.user_id,
+          type: 'job_assignment',
+          title: 'New Job Assignment',
+          message: `You have been assigned to job ${job.job_number} - ${job.category}`,
+          data: { job_id, isp_id, job_number: job.job_number, category: job.category }
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+        // Continue even if notification fails
+      }
+      
+      res.json({ 
+        success: true, 
         message: 'ISP assigned successfully',
-        data: assignmentResult
+        data: updatedJob 
       });
     } catch (error) {
-      logger.error('Assign best ISP error:', error);
+      console.error('Approve assignment error:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Failed to assign ISP', 
+        message: 'Failed to approve assignment', 
         error: error.message 
       });
     }
   }
 
-  async getISPAvailability(req, res) {
+  async getJobMatches(req, res) {
     try {
-      const { isp_id } = req.params;
-      const { start_date, end_date } = req.query;
+      const { job_id } = req.params;
       
-      if (!start_date || !end_date) {
-        return res.status(400).json({
-          success: false,
-          message: 'Start date and end date are required'
+      const job = await Job.findById(job_id);
+      if (!job) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Job not found' 
         });
       }
 
-      const availability = await matchingService.getISPAvailability(isp_id, start_date, end_date);
+      const matches = await MatchingService.findMatchingISPs(job);
       
-      res.status(200).json({
-        success: true,
-        data: availability
+      res.json({ 
+        success: true, 
+        data: {
+          job,
+          matches: matches.map(m => ({
+            isp_id: m.isp.id,
+            isp_name: m.isp.trade,
+            score: m.score,
+            distance: m.distance,
+            rating: m.isp.rating,
+            experience: m.isp.experience_years,
+            availability: m.isp.availability
+          }))
+        }
       });
     } catch (error) {
-      logger.error('Get ISP availability error:', error);
+      console.error('Get job matches error:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Failed to get ISP availability', 
-        error: error.message 
-      });
-    }
-  }
-
-  async bulkMatchISP(req, res) {
-    try {
-      const { jobs } = req.body;
-      
-      if (!Array.isArray(jobs) || jobs.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Jobs array is required'
-        });
-      }
-
-      const bulkResult = await matchingService.bulkMatchISP(jobs);
-      
-      res.status(200).json({
-        success: true,
-        message: 'Bulk ISP matching completed',
-        data: bulkResult
-      });
-    } catch (error) {
-      logger.error('Bulk ISP matching error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to perform bulk ISP matching', 
+        message: 'Failed to get job matches', 
         error: error.message 
       });
     }

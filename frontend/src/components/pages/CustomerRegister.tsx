@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Box, Container, TextField, Button, Typography, Paper, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import LocationPicker from '../maps/LocationPicker';
+import { GhanaValidation } from '../../utils/ghanaValidation';
 
 const CustomerRegister: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -14,9 +16,11 @@ const CustomerRegister: React.FC = () => {
     ghana_post_gps: '',
     customer_type: '',
     referral_source: '',
+    gps_coords: '',
   });
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +37,24 @@ const CustomerRegister: React.FC = () => {
     setError('');
 
     try {
+      // Validate phone number using Ghana validation
+      const phoneValidation = GhanaValidation.validatePhoneNumber(formData.phone);
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error || 'Invalid Ghana phone number');
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate GhanaPost GPS if provided
+      if (formData.ghana_post_gps) {
+        const gpsValidation = GhanaValidation.validateGhanaPostGPS(formData.ghana_post_gps);
+        if (!gpsValidation.isValid) {
+          setError(gpsValidation.error || 'Invalid GhanaPost GPS code');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Register user with basic info
       const registerData = {
         username: formData.full_name.replace(/\s+/g, '_').toLowerCase(),
@@ -50,8 +72,9 @@ const CustomerRegister: React.FC = () => {
       // Create customer profile with additional fields
       await api.post('/api/customers', {
         user_id: authResponse.data.data.user.id,
-        phone: formData.phone,
+        phone: phoneValidation.formatted || formData.phone,
         address: formData.address,
+        gps_coords: formData.gps_coords,
         preferences: {
           whatsapp: formData.whatsapp,
           ghana_post_gps: formData.ghana_post_gps,
@@ -75,16 +98,18 @@ const CustomerRegister: React.FC = () => {
         <Button onClick={() => navigate('/')} sx={{ mb: 2 }}>
           ← Back to Home
         </Button>
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            AJUMAPLUS CRM
-          </Typography>
-          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
-            Customer Registration
-          </Typography>
-          <Typography variant="body2" align="center" color="textSecondary" sx={{ mb: 2 }}>
-            Register as a customer to receive updates and offers across Ghana
-          </Typography>
+        <Paper elevation={0} sx={{ p: 5, width: '100%', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderRadius: 3 }}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography component="h1" variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#FFD400' }}>
+              AJUMAPLUS
+            </Typography>
+            <Typography variant="h6" color="textSecondary" gutterBottom sx={{ fontWeight: 600 }}>
+              Customer Registration
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 2, maxWidth: 400, mx: 'auto' }}>
+              Register as a customer to receive updates and offers across Ghana
+            </Typography>
+          </Box>
           
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -157,6 +182,40 @@ const CustomerRegister: React.FC = () => {
               value={formData.address}
               onChange={handleChange}
             />
+            
+            <Button
+              type="button"
+              variant="outlined"
+              fullWidth
+              onClick={() => setShowLocationPicker(!showLocationPicker)}
+              sx={{ mb: 2 }}
+            >
+              {showLocationPicker ? 'Hide Location Picker' : '📍 Select Location on Map'}
+            </Button>
+            
+            {showLocationPicker && (
+              <Box sx={{ mb: 2 }}>
+                <LocationPicker
+                  onLocationSelect={(location) => {
+                    setFormData({
+                      ...formData,
+                      gps_coords: JSON.stringify(location)
+                    });
+                  }}
+                  height="300px"
+                />
+              </Box>
+            )}
+            
+            <TextField
+              margin="normal"
+              fullWidth
+              id="ghana_post_gps"
+              label="GhanaPost GPS (Optional)"
+              name="ghana_post_gps"
+              value={formData.ghana_post_gps}
+              onChange={handleChange}
+            />
             <TextField
               margin="normal"
               fullWidth
@@ -191,7 +250,16 @@ const CustomerRegister: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ 
+                mt: 3, 
+                mb: 3, 
+                py: 1.5, 
+                fontSize: '1rem', 
+                fontWeight: 600,
+                bgcolor: '#FFD400',
+                color: '#000',
+                '&:hover': { bgcolor: '#E6BE00' }
+              }}
               disabled={isLoading}
             >
               {isLoading ? <CircularProgress size={24} /> : 'Register as Customer'}

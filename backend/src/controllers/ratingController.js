@@ -7,7 +7,7 @@ class RatingController {
   // Create rating for ISP
   async createRating(req, res) {
     try {
-      const { isp_id, job_id, quality, timeliness, professionalism, communication, comment } = req.body;
+      const { job_id, quality_rating, timeliness_rating, professionalism_rating, communication_rating, review } = req.body;
       const user_id = req.user.id;
 
       // Validate job exists and belongs to user
@@ -19,7 +19,11 @@ class RatingController {
         });
       }
 
-      if (job.customer_id !== user_id) {
+      // Get customer ID from user
+      const Customer = require('../models/Customer');
+      const customer = await Customer.findByUserId(user_id);
+      
+      if (!customer || job.customer_id !== customer.id) {
         return res.status(403).json({
           success: false,
           message: 'You can only rate jobs you created'
@@ -35,27 +39,36 @@ class RatingController {
       }
 
       // Check if already rated
-      const existingRating = await Rating.findByJobAndISP(job_id, isp_id);
+      const existingRating = await Rating.findByJobId(job_id);
       if (existingRating) {
         return res.status(400).json({
           success: false,
-          message: 'Job already rated for this ISP'
+          message: 'Job already rated'
+        });
+      }
+
+      // Get ISP ID from job
+      const isp_id = job.isp_id;
+      if (!isp_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Job must be assigned to an ISP before rating'
         });
       }
 
       // Calculate overall rating
-      const overall = (quality + timeliness + professionalism + communication) / 4;
+      const overall = (quality_rating + timeliness_rating + professionalism_rating + communication_rating) / 4;
 
       const rating = await Rating.create({
         isp_id,
         job_id,
-        customer_id: user_id,
-        quality,
-        timeliness,
-        professionalism,
-        communication,
+        customer_id: customer.id,
+        quality: quality_rating,
+        timeliness: timeliness_rating,
+        professionalism: professionalism_rating,
+        communication: communication_rating,
         overall,
-        comment
+        comment: review
       });
 
       // Update ISP average rating
@@ -113,6 +126,33 @@ class RatingController {
     }
   }
 
+  // Get rating by job
+  async getRatingByJob(req, res) {
+    try {
+      const { job_id } = req.params;
+      const rating = await Rating.findByJobId(job_id);
+
+      if (!rating) {
+        return res.status(404).json({
+          success: false,
+          message: 'Rating not found for this job'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: rating
+      });
+    } catch (error) {
+      logger.error('Get rating by job error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get rating',
+        error: error.message
+      });
+    }
+  }
+
   // Get rating by ID
   async getRatingById(req, res) {
     try {
@@ -140,11 +180,56 @@ class RatingController {
     }
   }
 
+  // Check if rating can be edited (within 24-hour window)
+  async canEditRating(req, res) {
+    try {
+      const { id } = req.params;
+      const rating = await Rating.findById(id);
+
+      if (!rating) {
+        return res.status(404).json({
+          success: false,
+          message: 'Rating not found'
+        });
+      }
+
+      // Check ownership
+      if (rating.customer_id !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only check edit status for your own ratings'
+        });
+      }
+
+      // Check if within 24 hours
+      const ratingDate = new Date(rating.created_at);
+      const now = new Date();
+      const hoursSinceRating = (now - ratingDate) / (1000 * 60 * 60);
+      const canEdit = hoursSinceRating <= 24;
+      const timeRemaining = canEdit ? Math.max(0, 24 - hoursSinceRating) : 0;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          canEdit,
+          timeRemaining: canEdit ? Math.round(timeRemaining * 60) : 0 // Return minutes remaining
+        }
+      });
+    } catch (error) {
+      logger.error('Check edit rating error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to check edit status',
+        error: error.message
+      });
+    }
+  }
+
   // Update rating (within 24 hours only)
   async updateRating(req, res) {
     try {
       const { id } = req.params;
-      const { quality, timeliness, professionalism, communication, comment } = req.body;
+      const { quality_rating, timeliness_rating, professionalism_rating, communication_rating, review } = req.body;
 
       const rating = await Rating.findById(id);
       if (!rating) {
@@ -175,15 +260,15 @@ class RatingController {
       }
 
       // Calculate new overall rating
-      const overall = (quality + timeliness + professionalism + communication) / 4;
+      const overall = (quality_rating + timeliness_rating + professionalism_rating + communication_rating) / 4;
 
       const updatedRating = await Rating.update(id, {
-        quality,
-        timeliness,
-        professionalism,
-        communication,
+        quality: quality_rating,
+        timeliness: timeliness_rating,
+        professionalism: professionalism_rating,
+        communication: communication_rating,
         overall,
-        comment
+        comment: review
       });
 
       // Update ISP average rating

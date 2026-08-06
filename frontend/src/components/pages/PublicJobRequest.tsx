@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Container, TextField, Button, Typography, Paper, Alert, CircularProgress, MenuItem } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { guestService } from '../../services/guestService';
+import { GhanaValidation } from '../../utils/ghanaValidation';
 
 const PublicJobRequest: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -32,8 +33,19 @@ const PublicJobRequest: React.FC = () => {
     setError('');
 
     try {
+      // Validate phone number using Ghana validation
+      const phoneValidation = GhanaValidation.validatePhoneNumber(formData.phone);
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error || 'Invalid Ghana phone number');
+        setIsLoading(false);
+        return;
+      }
+
       // Submit guest request through the guest service
-      const result = await guestService.submitGuestRequest(formData);
+      const result = await guestService.submitGuestRequest({
+        ...formData,
+        phone: phoneValidation.formatted || formData.phone,
+      });
       
       if (result.success) {
         setSuccess(true);

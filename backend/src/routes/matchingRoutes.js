@@ -6,10 +6,13 @@ const { auth, requireStaff } = require('../middleware/auth');
 // All matching routes require authentication
 router.use(auth);
 
-// ISP matching routes
-router.post('/jobs/:job_id/match', matchingController.matchISPForJob);
-router.post('/jobs/:job_id/assign', requireStaff, matchingController.assignBestISP);
-router.get('/isp/:isp_id/availability', matchingController.getISPAvailability);
-router.post('/bulk-match', requireStaff, matchingController.bulkMatchISP);
+// Get suggested assignments for pending jobs (staff/admin only)
+router.get('/suggestions', requireStaff, matchingController.getSuggestedAssignments);
+
+// Approve a suggested assignment (staff/admin only)
+router.post('/approve', requireStaff, matchingController.approveAssignment);
+
+// Get matching ISPs for a specific job (staff/admin only)
+router.get('/jobs/:job_id/matches', requireStaff, matchingController.getJobMatches);
 
 module.exports = router;

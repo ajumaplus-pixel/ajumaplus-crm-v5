@@ -22,7 +22,7 @@ class Rating {
         professionalism, communication, overall, comment,
         created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
     const values = [
@@ -35,27 +35,27 @@ class Rating {
   }
 
   static async findById(id) {
-    const query = 'SELECT * FROM ratings WHERE id = $1';
+    const query = 'SELECT * FROM ratings WHERE id = ?';
     const result = await pool.query(query, [id]);
-    return result.rows[0];
+    return result[0];
   }
 
   static async findByJobId(jobId) {
-    const query = 'SELECT * FROM ratings WHERE job_id = $1';
+    const query = 'SELECT * FROM ratings WHERE job_id = ?';
     const result = await pool.query(query, [jobId]);
-    return result.rows[0];
+    return result[0];
   }
 
   static async findByJobAndISP(jobId, ispId) {
-    const query = 'SELECT * FROM ratings WHERE job_id = $1 AND isp_id = $2';
+    const query = 'SELECT * FROM ratings WHERE job_id = ? AND isp_id = ?';
     const result = await pool.query(query, [jobId, ispId]);
-    return result.rows[0];
+    return result[0];
   }
 
   static async findByISPId(ispId, limit = 50, offset = 0) {
-    const query = 'SELECT * FROM ratings WHERE isp_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3';
+    const query = 'SELECT * FROM ratings WHERE isp_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?';
     const result = await pool.query(query, [ispId, limit, offset]);
-    return result.rows;
+    return result;
   }
 
   static async getAverageRating(ispId) {
@@ -68,16 +68,16 @@ class Rating {
         AVG(professionalism) as avg_professionalism,
         AVG(communication) as avg_communication
       FROM ratings
-      WHERE isp_id = $1
+      WHERE isp_id = ?
     `;
     const result = await pool.query(query, [ispId]);
-    return result.rows[0];
+    return result[0];
   }
 
   static async getAll(limit = 50, offset = 0) {
-    const query = 'SELECT * FROM ratings ORDER BY created_at DESC LIMIT $1 OFFSET $2';
+    const query = 'SELECT * FROM ratings ORDER BY created_at DESC LIMIT ? OFFSET ?';
     const result = await pool.query(query, [limit, offset]);
-    return result.rows;
+    return result;
   }
 
   static async update(id, updateData) {
@@ -98,10 +98,10 @@ class Rating {
 
     const query = `
       UPDATE ratings
-      SET quality = $1, timeliness = $2, professionalism = $3, communication = $4,
-          overall = $5, comment = $6, reported = $7, report_reason = $8,
-          reported_by = $9, reported_at = $10, isp_response = $11, responded_at = $12, updated_at = NOW()
-      WHERE id = $13
+      SET quality = ?, timeliness = ?, professionalism = ?, communication = ?,
+          overall = ?, comment = ?, reported = ?, report_reason = ?,
+          reported_by = ?, reported_at = ?, isp_response = ?, responded_at = ?, updated_at = NOW()
+      WHERE id = ?
     `;
 
     const values = [
@@ -114,14 +114,14 @@ class Rating {
   }
 
   static async delete(id) {
-    const query = 'DELETE FROM ratings WHERE id = $1';
+    const query = 'DELETE FROM ratings WHERE id = ?';
     await pool.query(query, [id]);
   }
 
   static async getReportedRatings(limit = 50, offset = 0) {
-    const query = 'SELECT * FROM ratings WHERE reported = true ORDER BY reported_at DESC LIMIT $1 OFFSET $2';
+    const query = 'SELECT * FROM ratings WHERE reported = true ORDER BY reported_at DESC LIMIT ? OFFSET ?';
     const result = await pool.query(query, [limit, offset]);
-    return result.rows;
+    return result;
   }
 }
 

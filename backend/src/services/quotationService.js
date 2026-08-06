@@ -281,6 +281,17 @@ class QuotationService {
     return priorityMap[priority] || 2;
   }
 
+  // Get quotations by job
+  async getQuotationsByJob(jobId) {
+    try {
+      const quotations = await Quotation.findByJobId(jobId);
+      return quotations;
+    } catch (error) {
+      logger.error('Get quotations by job error:', error);
+      throw error;
+    }
+  }
+
   // Get quotation statistics
   async getQuotationStats() {
     try {

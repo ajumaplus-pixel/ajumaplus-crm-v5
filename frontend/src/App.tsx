@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/common/Navbar';
 import Landing from './components/pages/Landing';
 import AdminLanding from './components/pages/AdminLanding';
+import AdminStaffLogin from './components/pages/AdminStaffLogin';
 import CustomerLogin from './components/pages/CustomerLogin';
 import CustomerRegister from './components/pages/CustomerRegister';
 import ISPLogin from './components/pages/ISPLogin';
@@ -15,8 +16,19 @@ import Login from './components/pages/Login';
 import Register from './components/pages/Register';
 import Dashboard from './components/pages/Dashboard';
 import AdminDashboard from './components/pages/AdminDashboard';
-import CreateJobRequest from './components/pages/CreateJobRequest';
+import PublicJobRequest from './components/pages/PublicJobRequest';
+import CustomerJobs from './components/pages/CustomerJobs';
+import CustomerDashboard from './components/pages/CustomerDashboard';
+import CustomerJobDetails from './components/pages/CustomerJobDetails';
+import CustomerProfile from './components/pages/CustomerProfile';
+import CustomerSupport from './components/pages/CustomerSupport';
+import QuotationReview from './components/pages/QuotationReview';
+import JobRating from './components/pages/JobRating';
+import ISPDashboard from './components/pages/ISPDashboard';
+import JobRequestForm from './components/pages/JobRequestForm';
+import QuoteComparison from './components/pages/QuoteComparison';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import 'leaflet/dist/leaflet.css';
 
 const theme = createTheme({
   palette: {
@@ -146,7 +158,10 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/request-service" element={<JobRequestForm />} />
+            <Route path="/public/request" element={<PublicJobRequest />} />
             <Route path="/admin" element={<AdminLanding />} />
+            <Route path="/admin-staff/login" element={<AdminStaffLogin />} />
             <Route path="/customer/login" element={<CustomerLogin />} />
             <Route path="/customer/register" element={<CustomerRegister />} />
             <Route path="/isp/login" element={<ISPLogin />} />
@@ -164,17 +179,47 @@ function App() {
             />
             <Route path="/customer/dashboard" element={
               <ProtectedRoute allowedRoles={['customer']}>
-                <Dashboard />
+                <CustomerDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/customer/jobs/new" element={
+            <Route path="/customer/jobs" element={
               <ProtectedRoute allowedRoles={['customer']}>
-                <CreateJobRequest />
+                <CustomerJobs />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/jobs/:jobId/quotes" element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <QuoteComparison />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/jobs/:jobId" element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <CustomerJobDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/profile" element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <CustomerProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/support" element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <CustomerSupport />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/quotations/:quotationId" element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <QuotationReview />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/jobs/:jobId/rate" element={
+              <ProtectedRoute allowedRoles={['customer']}>
+                <JobRating />
               </ProtectedRoute>
             } />
             <Route path="/isp/dashboard" element={
               <ProtectedRoute allowedRoles={['isp']}>
-                <Dashboard />
+                <ISPDashboard />
               </ProtectedRoute>
             } />
             <Route path="/staff/dashboard" element={

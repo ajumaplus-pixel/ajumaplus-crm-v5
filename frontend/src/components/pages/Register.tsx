@@ -43,8 +43,8 @@ const Register: React.FC = () => {
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            AJUMAPLUS CRM
+          <Typography component="h1" variant="h4" align="center" gutterBottom sx={{ fontWeight: 700, color: '#FFD400' }}>
+            AJUMAPLUS
           </Typography>
           <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
             Create Account
@@ -104,8 +104,6 @@ const Register: React.FC = () => {
             >
               <MenuItem value="customer">Customer</MenuItem>
               <MenuItem value="isp">Service Provider (ISP)</MenuItem>
-              <MenuItem value="staff">Staff</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
             </TextField>
             <Button
               type="submit"

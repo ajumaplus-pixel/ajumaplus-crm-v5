@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Container, TextField, Button, Typography, Paper, Alert, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import LocationPicker from '../maps/LocationPicker';
 
 const ISPRegister: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ const ISPRegister: React.FC = () => {
     password: '',
     ghana_card_id: '',
     location: '',
+    gps_coords: '',
     skills: '',
     certification: '',
     available_hours: '',
@@ -20,6 +22,7 @@ const ISPRegister: React.FC = () => {
   });
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,19 +54,18 @@ const ISPRegister: React.FC = () => {
       localStorage.setItem('user', JSON.stringify(authResponse.data.data.user));
 
       // Create ISP profile with additional fields
-      await api.post('/api/customers', {
+      await api.post('/api/isps', {
         user_id: authResponse.data.data.user.id,
         phone: formData.phone,
-        address: formData.location,
-        preferences: {
-          trade_profession: formData.trade_profession,
-          whatsapp: formData.whatsapp,
-          ghana_card_id: formData.ghana_card_id,
-          skills: formData.skills,
-          certification: formData.certification,
-          available_hours: formData.available_hours,
-          payment_details: formData.payment_details,
-        },
+        trade: formData.trade_profession,
+        location: formData.location,
+        gps_coords: formData.gps_coords,
+        skills: formData.skills,
+        certification: formData.certification,
+        ghana_card_id: formData.ghana_card_id,
+        available_hours: formData.available_hours,
+        payment_details: formData.payment_details,
+        whatsapp: formData.whatsapp,
       });
 
       // Redirect to ISP dashboard
@@ -81,16 +83,18 @@ const ISPRegister: React.FC = () => {
         <Button onClick={() => navigate('/')} sx={{ mb: 2 }}>
           ← Back to Home
         </Button>
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            AJUMAPLUS CRM
-          </Typography>
-          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
-            Service Provider Registration
-          </Typography>
-          <Typography variant="body2" align="center" color="textSecondary" sx={{ mb: 2 }}>
-            Join our network of trusted service providers across Ghana
-          </Typography>
+        <Paper elevation={0} sx={{ p: 5, width: '100%', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderRadius: 3 }}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography component="h1" variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#FFD400' }}>
+              AJUMAPLUS
+            </Typography>
+            <Typography variant="h6" color="textSecondary" gutterBottom sx={{ fontWeight: 600 }}>
+              Service Provider Registration
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 2, maxWidth: 400, mx: 'auto' }}>
+              Join our network of trusted service providers across Ghana
+            </Typography>
+          </Box>
           
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -172,6 +176,30 @@ const ISPRegister: React.FC = () => {
               value={formData.location}
               onChange={handleChange}
             />
+            
+            <Button
+              type="button"
+              variant="outlined"
+              fullWidth
+              onClick={() => setShowLocationPicker(!showLocationPicker)}
+              sx={{ mb: 2 }}
+            >
+              {showLocationPicker ? 'Hide Location Picker' : '📍 Select Location on Map'}
+            </Button>
+            
+            {showLocationPicker && (
+              <Box sx={{ mb: 2 }}>
+                <LocationPicker
+                  onLocationSelect={(location) => {
+                    setFormData({
+                      ...formData,
+                      gps_coords: JSON.stringify(location)
+                    });
+                  }}
+                  height="300px"
+                />
+              </Box>
+            )}
             <TextField
               margin="normal"
               required
@@ -229,7 +257,16 @@ const ISPRegister: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ 
+                mt: 3, 
+                mb: 3, 
+                py: 1.5, 
+                fontSize: '1rem', 
+                fontWeight: 600,
+                bgcolor: '#006B3F',
+                color: '#FFF',
+                '&:hover': { bgcolor: '#004D2C' }
+              }}
               disabled={isLoading}
             >
               {isLoading ? <CircularProgress size={24} /> : 'Register as Service Provider'}

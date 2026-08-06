@@ -13,11 +13,17 @@ export const guestService = {
     priority: string;
   }) {
     try {
+      // Validate required fields
+      if (!requestData.customer_name || !requestData.phone || !requestData.email || 
+          !requestData.address || !requestData.category || !requestData.description) {
+        throw new Error('All required fields must be provided');
+      }
+
       // For guest requests, we'll create a temporary customer record first
       const customerData = {
         username: `guest_${Date.now()}`,
         email: requestData.email,
-        password: 'temporary_password_123', // Would be handled differently in production
+        password: this.generateTemporaryPassword(),
         role: 'customer',
       };
 
@@ -27,12 +33,15 @@ export const guestService = {
       // Get the user ID from registration
       const userId = registerResponse.data.data.user.id;
       
-      // Create customer profile
-      const customerProfile = await api.post('/api/customers', {
+      // Create guest customer profile
+      const customerProfile = await api.post('/api/customers/guest', {
         user_id: userId,
         phone: requestData.phone,
         address: requestData.address,
-        preferences: {},
+        preferences: {
+          is_guest: true,
+          guest_name: requestData.customer_name,
+        },
       });
 
       // Create job using the customer ID
@@ -51,16 +60,32 @@ export const guestService = {
         success: true,
         job: jobResponse.data.data,
         user: registerResponse.data.data.user,
+        message: 'Service request submitted successfully',
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Guest request failed:', error);
-      // Return success anyway for demo purposes
-      return {
-        success: true,
-        job: null,
-        user: null,
-        message: 'Request submitted successfully (demo mode)',
-      };
+      
+      // Handle specific error cases
+      if (error.response) {
+        // Backend returned an error
+        throw new Error(error.response.data?.message || 'Failed to submit request. Please try again.');
+      } else if (error.request) {
+        // Request was made but no response received
+        throw new Error('Network error. Please check your connection and try again.');
+      } else {
+        // Something else happened
+        throw new Error(error.message || 'An unexpected error occurred. Please try again.');
+      }
     }
+  },
+
+  // Generate a secure temporary password
+  generateTemporaryPassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 16; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
   },
 };

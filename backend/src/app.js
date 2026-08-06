@@ -17,6 +17,8 @@ const webhookRoutes = require('./routes/webhookRoutes');
 const matchingRoutes = require('./routes/matchingRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const ratingRoutes = require('./routes/ratingRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const ispRoutes = require('./routes/ispRoutes');
 
 const app = express();
 
@@ -33,7 +35,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3003',
+  origin: ['http://localhost:3003', 'http://127.0.0.1:52261', 'http://127.0.0.1:50718', 'http://127.0.0.1:50007'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -92,6 +94,18 @@ app.get('/health', (req, res) => {
   res.status(200).json(healthData);
 });
 
+// Public route for ISP data (no auth/rate limiting for landing page)
+app.get('/api/isps/all', async (req, res) => {
+  try {
+    const ISP = require('./models/ISP');
+    const isps = await ISP.getAll(100, 0);
+    res.json({ success: true, data: isps });
+  } catch (error) {
+    console.error('Get all ISPs error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API routes with rate limiting
 app.use('/api/auth', rateLimiterMiddleware, authRoutes);
 app.use('/api/users', rateLimiterMiddleware, userRoutes);
@@ -101,6 +115,8 @@ app.use('/api/pricing', rateLimiterMiddleware, pricingRoutes);
 app.use('/api/matching', rateLimiterMiddleware, matchingRoutes);
 app.use('/api/analytics', rateLimiterMiddleware, analyticsRoutes);
 app.use('/api/ratings', rateLimiterMiddleware, ratingRoutes);
+app.use('/api/notifications', rateLimiterMiddleware, notificationRoutes);
+app.use('/api/isps', rateLimiterMiddleware, ispRoutes);
 app.use('/api/webhooks', webhookRoutes); // Webhooks need different rate limiting
 
 // 404 handler

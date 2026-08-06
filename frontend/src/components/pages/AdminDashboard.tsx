@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { Box, Container, Typography, Paper, Tabs, Tab, Card, CardContent, Button } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Container, Typography, Paper, Tabs, Tab, Card, CardContent, Button, Grid, CircularProgress } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
+import JobMap from '../maps/JobMap';
+import ISPMap from '../maps/ISPMap';
+import api from '../../services/api';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -28,6 +31,45 @@ function TabPanel(props: TabPanelProps) {
 const AdminDashboard: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const { user } = useAuth();
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [isps, setISPs] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get all jobs
+      const jobsResponse = await api.get('/api/jobs');
+      setJobs(jobsResponse.data.data || []);
+      
+      // Get all ISPs
+      const ispsResponse = await api.get('/api/isps/all');
+      setISPs(ispsResponse.data.data || []);
+      
+      // Get assignment suggestions
+      const suggestionsResponse = await api.get('/api/matching/suggestions');
+      setSuggestions(suggestionsResponse.data.data || []);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApproveAssignment = async (jobId: string, ispId: string) => {
+    try {
+      await api.post('/api/matching/approve', { job_id: jobId, isp_id });
+      loadDashboardData();
+    } catch (error) {
+      console.error('Failed to approve assignment:', error);
+    }
+  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -131,6 +173,9 @@ const AdminDashboard: React.FC = () => {
           variant="scrollable"
           scrollButtons="auto"
         >
+          <Tab label="Job Map View" />
+          <Tab label="ISP Availability Map" />
+          <Tab label="Auto Assignments" />
           <Tab label="Analytics Dashboard" />
           <Tab label="Jobs Management" />
           <Tab label="Customer Profiles" />
@@ -140,13 +185,102 @@ const AdminDashboard: React.FC = () => {
           <Tab label="Reports" />
         </Tabs>
 
-        {/* Analytics Dashboard Tab */}
+        {/* Job Map Tab */}
         <TabPanel value={tabValue} index={0}>
+          <Typography variant="h6" gutterBottom>
+            Job Requests Map
+          </Typography>
+          {isLoading ? (
+            <CircularProgress />
+          ) : (
+            <JobMap jobs={jobs} isps={isps} />
+          )}
+        </TabPanel>
+
+        {/* ISP Availability Tab */}
+        <TabPanel value={tabValue} index={1}>
+          <Typography variant="h6" gutterBottom>
+            ISP Service Coverage Map
+          </Typography>
+          {isLoading ? (
+            <CircularProgress />
+          ) : (
+            <ISPMap isps={isps} showServiceAreas={true} />
+          )}
+        </TabPanel>
+
+        {/* Auto Assignments Tab */}
+        <TabPanel value={tabValue} index={2}>
+          <Typography variant="h6" gutterBottom>
+            Suggested Job Assignments
+          </Typography>
+          {isLoading ? (
+            <CircularProgress />
+          ) : suggestions.length === 0 ? (
+            <Typography variant="body2" color="textSecondary">
+              No pending jobs for assignment
+            </Typography>
+          ) : (
+            <Grid container spacing={2}>
+              {suggestions.map((suggestion) => (
+                <Grid item xs={12} key={suggestion.job.id}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {suggestion.job.job_number} - {suggestion.job.category}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        {suggestion.job.description}
+                      </Typography>
+                      
+                      <Typography variant="h6" sx={{ mt: 2 }}>
+                        Top Matching ISPs:
+                      </Typography>
+                      {suggestion.matches.map((match) => (
+                        <Box
+                          key={match.isp_id}
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 1,
+                            p: 2,
+                            bgcolor: 'grey.50',
+                            borderRadius: 1
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {match.isp_name}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Score: {match.score}/100 | Distance: {match.distance ? match.distance.toFixed(1) : 'N/A'}km
+                            </Typography>
+                          </Box>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleApproveAssignment(suggestion.job.id, match.isp_id)}
+                          >
+                            Assign
+                          </Button>
+                        </Box>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </TabPanel>
+
+        {/* Analytics Dashboard Tab */}
+        <TabPanel value={tabValue} index={3}>
           <AnalyticsDashboard />
         </TabPanel>
 
         {/* Jobs Management Tab */}
-        <TabPanel value={tabValue} index={1}>
+        <TabPanel value={tabValue} index={4}>
           <Typography variant="h6" gutterBottom>
             Jobs Management
           </Typography>
@@ -176,7 +310,7 @@ const AdminDashboard: React.FC = () => {
         </TabPanel>
 
         {/* Customer Profiles Tab */}
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={5}>
           <Typography variant="h6" gutterBottom>
             Customer Profiles
           </Typography>
@@ -196,7 +330,7 @@ const AdminDashboard: React.FC = () => {
         </TabPanel>
 
         {/* ISP Profiles Tab */}
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={6}>
           <Typography variant="h6" gutterBottom>
             ISP Profiles
           </Typography>
@@ -216,7 +350,7 @@ const AdminDashboard: React.FC = () => {
         </TabPanel>
 
         {/* Payments Tab */}
-        <TabPanel value={tabValue} index={4}>
+        <TabPanel value={tabValue} index={7}>
           <Typography variant="h6" gutterBottom>
             Payments
           </Typography>
@@ -235,7 +369,7 @@ const AdminDashboard: React.FC = () => {
             {recentPayments.map((payment) => (
               <Box key={payment.id} sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2, borderLeft: 4, borderColor: 'secondary.main' }}>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {payment.customer} - {payment.currency} {payment.amount.toLocaleString()}
+                  {payment.customer} - {payment.amount} {payment.currency}
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
                   Status: {payment.status} | Date: {payment.date}
@@ -246,7 +380,7 @@ const AdminDashboard: React.FC = () => {
         </TabPanel>
 
         {/* User Management Tab */}
-        <TabPanel value={tabValue} index={5}>
+        <TabPanel value={tabValue} index={8}>
           <Typography variant="h6" gutterBottom>
             User Management
           </Typography>
@@ -266,7 +400,7 @@ const AdminDashboard: React.FC = () => {
         </TabPanel>
 
         {/* Reports Tab */}
-        <TabPanel value={tabValue} index={6}>
+        <TabPanel value={tabValue} index={9}>
           <Typography variant="h6" gutterBottom>
             Reports
           </Typography>
@@ -280,7 +414,7 @@ const AdminDashboard: React.FC = () => {
           </Box>
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="textSecondary">
-              Report generation features coming soon...
+              Reporting features coming soon...
             </Typography>
           </Paper>
         </TabPanel>

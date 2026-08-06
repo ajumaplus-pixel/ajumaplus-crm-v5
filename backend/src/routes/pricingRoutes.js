@@ -14,8 +14,8 @@ router.post('/estimate', pricingController.estimatePrice);
 router.post('/quotations', requireStaff, pricingController.createQuotation);
 router.get('/quotations', requireStaff, pricingController.getAllQuotations);
 router.get('/quotations/:id', pricingController.getQuotationById);
-router.put('/quotations/:id/approve', requireStaff, pricingController.approveQuotation);
-router.put('/quotations/:id/reject', requireStaff, pricingController.rejectQuotation);
+router.put('/quotations/:id/approve', pricingController.approveQuotation); // Customers can approve their quotations
+router.put('/quotations/:id/reject', pricingController.rejectQuotation); // Customers can reject their quotations
 
 // Quotation workflow routes
 router.post('/quotations/job/:job_id/generate', requireStaff, async (req, res) => {
@@ -48,6 +48,23 @@ router.post('/quotations/compare', requireStaff, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to compare quotations',
+      error: error.message
+    });
+  }
+});
+
+router.get('/quotations/job/:job_id', async (req, res) => {
+  try {
+    const { job_id } = req.params;
+    const quotations = await quotationService.getQuotationsByJob(job_id);
+    res.status(200).json({
+      success: true,
+      data: quotations
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get quotations for job',
       error: error.message
     });
   }

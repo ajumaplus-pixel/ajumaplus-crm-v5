@@ -2,29 +2,45 @@ import React, { useEffect, useState } from 'react';
 import { Box, Container, Typography, Card, CardContent, Button } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { jobService } from '../../services/jobService';
+import { customerService } from '../../services/customerService';
 import { Job } from '../../types';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [stats, setStats] = useState({
+    totalJobs: 0,
+    activeJobs: 0,
+    completedJobs: 0,
+    totalSpent: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadJobs();
-  }, []);
+  const loadCustomerData = async () => {
+    if (!user) return;
 
-  const loadJobs = async () => {
     try {
-      const allJobs = await jobService.getAllJobs();
-      setJobs(allJobs);
+      // Get customer profile
+      const customer = await customerService.getCustomerByUserId(user.id);
+      
+      // Get customer jobs
+      const customerJobs = await customerService.getCustomerJobs(customer.id);
+      setJobs(customerJobs);
+      
+      // Get customer statistics
+      const customerStats = await customerService.getCustomerStats(customer.id);
+      setStats(customerStats);
     } catch (error) {
-      console.error('Failed to load jobs:', error);
+      console.error('Failed to load customer data:', error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadCustomerData();
+  }, [loadCustomerData]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -51,37 +67,37 @@ const Dashboard: React.FC = () => {
               Total Jobs
             </Typography>
             <Typography variant="h4">
-              {jobs.length}
-            </Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: 1, minWidth: 200 }}>
-          <CardContent>
-            <Typography variant="h6" color="success.main">
-              New Jobs
-            </Typography>
-            <Typography variant="h4">
-              {jobs.filter(job => job.status === 'new').length}
+              {stats.totalJobs}
             </Typography>
           </CardContent>
         </Card>
         <Card sx={{ flex: 1, minWidth: 200 }}>
           <CardContent>
             <Typography variant="h6" color="warning.main">
-              In Progress
+              Active Jobs
             </Typography>
             <Typography variant="h4">
-              {jobs.filter(job => job.status === 'in_progress').length}
+              {stats.activeJobs}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: 1, minWidth: 200 }}>
+          <CardContent>
+            <Typography variant="h6" color="success.main">
+              Completed
+            </Typography>
+            <Typography variant="h4">
+              {stats.completedJobs}
             </Typography>
           </CardContent>
         </Card>
         <Card sx={{ flex: 1, minWidth: 200 }}>
           <CardContent>
             <Typography variant="h6" color="info.main">
-              Completed
+              Total Spent
             </Typography>
             <Typography variant="h4">
-              {jobs.filter(job => job.status === 'completed').length}
+              GHS {stats.totalSpent.toFixed(2)}
             </Typography>
           </CardContent>
         </Card>
@@ -118,14 +134,24 @@ const Dashboard: React.FC = () => {
         </Typography>
         
         {user?.role === 'customer' && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate('/customer/jobs/new')}
-            sx={{ mr: 2 }}
-          >
-            Create Job Request
-          </Button>
+          <>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => navigate('/customer/jobs/new')}
+              sx={{ mr: 2 }}
+            >
+              Create Job Request
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => navigate('/customer/jobs')}
+              sx={{ mr: 2 }}
+            >
+              View My Jobs
+            </Button>
+          </>
         )}
         
         {user?.role === 'isp' && (

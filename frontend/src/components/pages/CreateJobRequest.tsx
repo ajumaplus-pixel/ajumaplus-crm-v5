@@ -9,6 +9,7 @@ const CreateJobRequest: React.FC = () => {
     customer_name: '',
     phone: '',
     email: '',
+    address: '',
     service_category: '',
     description: '',
     priority: 'normal' as 'normal' | 'low' | 'high' | 'urgent',
@@ -46,7 +47,7 @@ const CreateJobRequest: React.FC = () => {
         category: formData.service_category,
         description: formData.description,
         priority: priorityMap[formData.priority] || 'normal',
-        address: '', // This would be filled if we had address field
+        address: formData.address,
         customer_id: user?.id || '', // This would normally come from customer profile
         notes: `Submitted by ${formData.customer_name} (${formData.email}) - Phone: ${formData.phone} - Preferred Date: ${formData.preferred_date}`,
       };
@@ -128,6 +129,19 @@ const CreateJobRequest: React.FC = () => {
             name="phone"
             value={formData.phone}
             onChange={handleChange}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="address"
+            label="Service Address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            multiline
+            rows={2}
+            helperText="Enter the full address where service is needed"
           />
           <TextField
             margin="normal"
